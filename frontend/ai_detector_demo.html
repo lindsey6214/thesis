@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Detector</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f4f7;
+    --white: #ffffff;
+    --sidebar-w: 200px;
+    --blue: #3b6ef5;
+    --blue-light: #e8effe;
+    --text: #1a1a1a;
+    --text-muted: #888;
+    --text-light: #bbb;
+    --border: #e4e8ed;
+    --red-card: #f0436a;
+    --green: #2ec26a;
+    --font: 'Inter', sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ══ LANDING ══ */
+  #landing {
+    position: fixed; inset: 0;
+    background: #f4f5f7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: opacity 0.4s ease;
+  }
+  #landing.hidden { opacity: 0; pointer-events: none; }
+
+  .avatar-bubble {
+    position: absolute;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+  }
+  .av1 { width: 68px; height: 68px; top: 10%; left: 30%; background: #ffd6cc; }
+  .av2 { width: 76px; height: 76px; top: 7%; left: 48%; background: #ffc8a0; }
+  .av3 { width: 62px; height: 62px; top: 22%; left: 19%; background: #c8e8ff; }
+  .av4 { width: 66px; height: 66px; top: 18%; left: 73%; background: #d8c8ff; }
+  .av5 { width: 70px; height: 70px; top: 32%; left: 82%; background: #ffe8a0; }
+
+  .landing-title {
+    font-size: clamp(3.2rem, 8vw, 5.8rem);
+    font-weight: 700;
+    color: #333;
+    line-height: 1.08;
+    text-align: center;
+    margin-bottom: 18px;
+    position: relative;
+    z-index: 1;
+  }
+  .landing-title .uw {
+    position: relative;
+    display: inline-block;
+  }
+  .landing-title .uw::after {
+    content: '';
+    position: absolute;
+    bottom: -6px; left: 0; right: 0;
+    height: 5px;
+    background: var(--blue);
+    border-radius: 3px;
+  }
+
+  .landing-sub {
+    font-size: 1rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 52px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .landing-signin {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 22px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .signin-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 44px;
+    background: var(--white);
+    border: 2px solid var(--blue);
+    border-radius: 100px;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    font-family: var(--font);
+    transition: background 0.15s, transform 0.1s;
+    min-width: 270px;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+  .signin-btn:hover { background: #eef2ff; transform: translateY(-1px); }
+  .signin-btn:active { transform: translateY(0); }
+
+  .signin-av {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #c8a090;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  /* ══ APP SHELL ══ */
+  #app {
+    display: flex;
+    width: 100%;
+    height: 100vh;
+    opacity: 0;
+    transition: opacity 0.4s ease 0.1s;
+    pointer-events: none;
+  }
+  #app.visible { opacity: 1; pointer-events: all; }
+
+  /* ══ SIDEBAR ══ */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--white);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0 16px;
+    flex-shrink: 0;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 18px;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 9px;
+    margin: 2px 10px;
+    transition: background 0.14s, color 0.14s;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .nav-item:hover { background: #f5f6f8; color: var(--text); }
+  .nav-item.active { background: var(--blue); color: white; }
+  .nav-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .nav-spacer { flex: 1; }
+
+  /* ══ MAIN ══ */
+  .main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .topbar {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 22px;
+    flex-shrink: 0;
+  }
+
+  .user-chip {
+    display: flex; align-items: center; gap: 7px;
+    cursor: pointer;
+    padding: 4px 8px; border-radius: 100px;
+    transition: background 0.14s;
+  }
+  .user-chip:hover { background: rgba(0,0,0,0.06); }
+  .user-av {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #6b8cff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; color: white; font-weight: 700;
+  }
+  .chevron { font-size: 11px; color: var(--text-muted); }
+
+  /* ══ PAGES ══ */
+  .page { display: none; flex: 1; overflow: hidden; }
+  .page.active { display: flex; }
+
+  /* ── HOME ── */
+  #home-page {
+    flex-direction: column;
+    padding: 36px 48px;
+    overflow-y: auto;
+  }
+  .home-greeting { font-size: 1.9rem; font-weight: 700; margin-bottom: 5px; }
+  .home-sub { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 30px; }
+  .section-label { font-size: 0.92rem; font-weight: 600; margin-bottom: 14px; }
+  .section-label span { font-weight: 400; color: var(--text-muted); margin-left: 6px; }
+
+  .essay-cards { display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .essay-card {
+    background: var(--white);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 18px;
+    width: 280px;
+  }
+  .essay-card-inner {
+    border: 1.5px solid #d0d0d0;
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .ec-title {
+    font-size: 0.88rem; font-weight: 500;
+    display: flex; justify-content: space-between; width: 100%; align-items: center;
+    color: var(--text);
+  }
+  .ec-icon { color: var(--text-light); font-size: 15px; }
+
+  .result-circle {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    border: 5px solid var(--green);
+    display: flex; align-items: center; justify-content: center;
+    margin: 8px auto 0;
+  }
+  .result-circle.ai { border-color: var(--red-card); }
+  .rc-inner { display: flex; align-items: center; justify-content: center; }
+
+  .home-empty {
+    color: var(--text-muted); font-size: 0.88rem;
+    padding: 40px 0;
+  }
+  .home-empty a { color: var(--blue); cursor: pointer; text-decoration: underline; }
+
+  /* ── EDITOR ── */
+  #editor-page { flex-direction: row; background: var(--bg); overflow: hidden; }
+
+  .editor-wrap {
+    flex: 1;
+    margin: 14px 0 14px 14px;
+    background: var(--white);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .editor-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 36px 56px;
+  }
+
+  #essay-editor {
+    width: 100%; height: 100%; min-height: 480px;
+    border: none; outline: none;
+    font-family: var(--font);
+    font-size: 0.96rem;
+    line-height: 1.85;
+    color: var(--text);
+    resize: none;
+    background: transparent;
+  }
+  #essay-editor::placeholder { color: #ccc; }
+
+  .toolbar {
+    border-top: 1px solid var(--border);
+    padding: 9px 20px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .tb-btn {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent;
+    border-radius: 6px; cursor: pointer;
+    font-family: var(--font);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    transition: background 0.12s, color 0.12s;
+  }
+  .tb-btn:hover { background: #f0f0f0; color: var(--text); }
+
+  .tb-sep { width: 1px; height: 18px; background: var(--border); margin: 0 5px; flex-shrink: 0; }
+
+  .tb-size {
+    font-size: 0.8rem; color: var(--text-muted);
+    padding: 0 6px; height: 30px;
+    display: flex; align-items: center; gap: 2px;
+    border-radius: 6px; cursor: pointer;
+    transition: background 0.12s;
+  }
+  .tb-size:hover { background: #f0f0f0; }
+
+  .wc { font-size: 0.73rem; color: var(--text-light); margin-left: 6px; }
+
+  .tb-right {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .sample-pill {
+    padding: 5px 13px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    background: var(--white);
+    cursor: pointer;
+    font-family: var(--font);
+    transition: all 0.12s;
+  }
+  .sample-pill:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+
+  .attach-btn {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent;
+    border-radius: 6px; cursor: pointer; color: var(--text-muted);
+    transition: background 0.12s;
+  }
+  .attach-btn:hover { background: #f0f0f0; }
+
+  .scan-btn {
+    padding: 8px 26px;
+    background: var(--blue);
+    color: white; border: none;
+    border-radius: 100px;
+    font-size: 0.88rem; font-weight: 600;
+    cursor: pointer; font-family: var(--font);
+    transition: background 0.14s, transform 0.1s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .scan-btn:hover { background: #2a5be0; transform: translateY(-1px); }
+  .scan-btn:active { transform: translateY(0); }
+  .scan-btn:disabled { background: #9fb4f8; pointer-events: none; }
+
+  /* ── RESULTS SIDEBAR ── */
+  .results-sidebar {
+    width: 290px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .result-tabs {
+    background: var(--white);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .result-tab {
+    flex: 1;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    background: var(--white);
+    border: none; font-family: var(--font);
+    transition: color 0.12s, box-shadow 0.12s;
+  }
+  .result-tab.active { color: var(--text); box-shadow: inset 0 -2px 0 var(--blue); }
+
+  .await-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 22px 18px;
+    color: var(--text-muted);
+    font-size: 0.86rem;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  .ai-result-card {
+    background: var(--red-card);
+    border-radius: 13px;
+    padding: 22px 20px;
+    color: white;
+    display: none;
+  }
+  .ai-result-card.visible { display: block; }
+  .arc-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 9px; }
+  .arc-body { font-size: 0.86rem; font-style: italic; line-height: 1.6; opacity: 0.92; }
+
+  .human-result-card {
+    background: var(--green);
+    border-radius: 13px;
+    padding: 22px 20px;
+    color: white;
+    display: none;
+  }
+  .human-result-card.visible { display: block; }
+
+  .conf-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 18px 20px;
+    display: none;
+  }
+  .conf-card.visible { display: block; }
+  .conf-label-sm { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 10px; }
+  .conf-track { height: 7px; background: #eee; border-radius: 4px; overflow: hidden; margin-bottom: 10px; }
+  .conf-fill { height: 100%; border-radius: 4px; background: var(--red-card); transition: width 0.7s cubic-bezier(0.16,1,0.3,1); width: 0%; }
+  .conf-fill.human { background: var(--green); }
+  .conf-big { font-size: 1.35rem; font-weight: 700; color: var(--text); }
+
+  .feedback-area { display: none; flex-direction: column; gap: 10px; }
+  .feedback-area.visible { display: flex; }
+  .fb-label { font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; }
+  .fb-btns { display: flex; gap: 8px; }
+  .fb-btn {
+    flex: 1; padding: 9px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    font-family: var(--font); font-size: 0.82rem;
+    cursor: pointer; color: var(--text);
+    transition: all 0.12s;
+  }
+  .fb-btn:hover { background: #f5f5f5; }
+  .fb-btn.correct { background: #eafaf0; border-color: var(--green); color: #1a9e50; }
+  .fb-btn.incorrect { background: #fff0f3; border-color: var(--red-card); color: var(--red-card); }
+
+  /* ── HISTORY ── */
+  #history-page { flex-direction: column; padding: 36px 48px; overflow-y: auto; }
+  .page-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 5px; }
+  .page-sub { font-size: 0.86rem; color: var(--text-muted); margin-bottom: 26px; }
+
+  .history-list { display: flex; flex-direction: column; gap: 9px; max-width: 580px; }
+  .history-item {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 12px; padding: 15px 18px;
+    display: flex; align-items: center; gap: 13px;
+    cursor: pointer; transition: border-color 0.14s;
+  }
+  .history-item:hover { border-color: var(--blue); }
+  .h-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .h-dot.ai { background: var(--red-card); }
+  .h-dot.human { background: var(--green); }
+  .h-info { flex: 1; min-width: 0; }
+  .h-name { font-size: 0.88rem; font-weight: 500; }
+  .h-date { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .h-badge { font-size: 0.73rem; font-weight: 600; padding: 4px 11px; border-radius: 100px; }
+  .h-badge.ai { background: #fff0f3; color: var(--red-card); }
+  .h-badge.human { background: #eafaf0; color: #1a9e50; }
+
+  /* ── PROFILE ── */
+  #profile-page { flex-direction: column; padding: 36px 48px; overflow-y: auto; }
+  .profile-header { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; }
+  .profile-av { width: 68px; height: 68px; border-radius: 50%; background: #6b8cff; display: flex; align-items: center; justify-content: center; font-size: 26px; color: white; font-weight: 700; }
+  .profile-name { font-size: 1.35rem; font-weight: 700; }
+  .profile-role { font-size: 0.84rem; color: var(--text-muted); margin-top: 3px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 440px; }
+  .stat-box { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+  .stat-val { font-size: 1.5rem; font-weight: 700; }
+  .stat-lbl { font-size: 0.73rem; color: var(--text-muted); margin-top: 3px; }
+
+  /* ── SETTINGS ── */
+  #settings-page { flex-direction: column; padding: 36px 48px; overflow-y: auto; }
+  .settings-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 22px 26px; max-width: 460px; }
+  .settings-field-label { font-size: 0.84rem; font-weight: 600; margin-bottom: 10px; color: var(--text); }
+  .settings-input {
+    width: 100%; padding: 9px 12px;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-family: var(--font); font-size: 0.84rem; color: var(--text);
+    outline: none; background: var(--bg);
+    transition: border-color 0.12s;
+  }
+  .settings-input:focus { border-color: var(--blue); }
+  .settings-hint { margin-top: 7px; font-size: 0.76rem; color: var(--text-muted); }
+  .settings-save { margin-top: 14px; padding: 8px 20px; background: var(--blue); color: white; border: none; border-radius: 8px; font-family: var(--font); font-size: 0.84rem; font-weight: 600; cursor: pointer; transition: background 0.14s; }
+  .settings-save:hover { background: #2a5be0; }
+
+  /* Spinner */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.65s linear infinite; display: inline-block; vertical-align: middle; }
+
+  /* ══ AUTH OVERLAY ══ */
+  #auth-overlay {
+    position: fixed; inset: 0;
+    background: rgba(30,40,60,0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    backdrop-filter: blur(4px);
+    padding: 20px;
+  }
+  #auth-overlay.visible { display: flex; }
+
+  .auth-card {
+    background: var(--white);
+    border-radius: 18px;
+    padding: 36px 36px 28px;
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    position: relative;
+  }
+
+  .auth-logo {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.9rem; font-weight: 700; color: var(--text);
+    margin-bottom: 24px;
+  }
+  .auth-logo-dot {
+    width: 22px; height: 22px; border-radius: 6px;
+    background: var(--blue);
+  }
+
+  .auth-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 5px; color: var(--text); }
+  .auth-sub { font-size: 0.86rem; color: var(--text-muted); margin-bottom: 22px; }
+
+  .auth-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .auth-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+  .auth-label { font-size: 0.8rem; font-weight: 600; color: var(--text); }
+
+  .auth-input {
+    padding: 10px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-family: var(--font); font-size: 0.88rem; color: var(--text);
+    outline: none; background: #fafbfc;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+  }
+  .auth-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,110,245,0.12); }
+  .auth-input.error { border-color: var(--red-card); }
+  .auth-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; cursor: pointer; }
+
+  .auth-pw-wrap { position: relative; }
+  .auth-pw-wrap .auth-input { padding-right: 40px; }
+  .auth-pw-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px; transition: color 0.12s; }
+  .auth-pw-toggle:hover { color: var(--text); }
+
+  .pw-strength { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .pw-strength-fill { height: 100%; border-radius: 2px; width: 0%; transition: width 0.3s ease, background 0.3s ease; }
+  .pw-strength-label { font-size: 0.72rem; margin-top: 4px; font-weight: 500; }
+
+  .auth-error { font-size: 0.76rem; color: var(--red-card); min-height: 16px; }
+  .auth-error-main { margin-bottom: 10px; text-align: center; font-size: 0.82rem; padding: 8px 12px; border-radius: 8px; }
+  .auth-error-main:not(:empty) { background: #fff0f3; border: 1px solid #ffc0cb; }
+
+  .auth-submit {
+    width: 100%; padding: 12px;
+    background: var(--blue); color: white;
+    border: none; border-radius: 10px;
+    font-family: var(--font); font-size: 0.92rem; font-weight: 600;
+    cursor: pointer; transition: background 0.14s, transform 0.1s;
+    margin-bottom: 14px;
+  }
+  .auth-submit:hover { background: #2a5be0; transform: translateY(-1px); }
+  .auth-submit:active { transform: translateY(0); }
+
+  .auth-switch { font-size: 0.82rem; color: var(--text-muted); text-align: center; margin-bottom: 12px; }
+  .auth-switch a { color: var(--blue); cursor: pointer; font-weight: 500; }
+  .auth-switch a:hover { text-decoration: underline; }
+
+  .auth-back {
+    display: block; width: 100%; text-align: center;
+    background: none; border: none; cursor: pointer;
+    font-family: var(--font); font-size: 0.8rem; color: var(--text-muted);
+    padding: 6px; border-radius: 6px; transition: color 0.12s, background 0.12s;
+  }
+  .auth-back:hover { color: var(--text); background: #f5f5f5; }
+
+  /* User dropdown */
+  .user-dropdown {
+    position: absolute; top: 46px; right: 14px;
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: 0 8px 28px rgba(0,0,0,0.1);
+    min-width: 180px; z-index: 50; overflow: hidden;
+    display: none;
+  }
+  .user-dropdown.open { display: block; }
+  .ud-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+  .ud-name { font-size: 0.88rem; font-weight: 600; color: var(--text); }
+  .ud-email { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+  .ud-item { display: flex; align-items: center; gap: 9px; padding: 10px 16px; font-size: 0.84rem; color: var(--text-muted); cursor: pointer; transition: background 0.12s; }
+  .ud-item:hover { background: #f5f6f8; color: var(--text); }
+  .ud-item.danger { color: var(--red-card); }
+  .ud-item.danger:hover { background: #fff0f3; }
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="landing">
+  <div class="avatar-bubble av1">👩‍🦱</div>
+  <div class="avatar-bubble av2">👩‍🦰</div>
+  <div class="avatar-bubble av3">🧑‍🦳</div>
+  <div class="avatar-bubble av4">🧢</div>
+  <div class="avatar-bubble av5">👩‍🎓</div>
+  <div class="landing-title"><div>Your <span class="uw">Best</span></div><div>AI Detector</div></div>
+  <div class="landing-sub">Deploy advanced AI detection tailored for academic integrity.</div>
+  <div class="landing-signin">Get started</div>
+  <div style="display:flex;flex-direction:column;gap:12px;position:relative;z-index:1;width:270px;">
+    <button class="signin-btn" onclick="showAuth('login')">
+      <div class="signin-av">🔑</div>
+      Sign in
+    </button>
+    <button class="signin-btn" style="border-color:var(--green);" onclick="showAuth('signup')">
+      <div class="signin-av" style="background:#b8ead0;">✏️</div>
+      Create account
+    </button>
+  </div>
+</div>
+
+<!-- AUTH OVERLAY -->
+<div id="auth-overlay">
+  <div class="auth-card" id="auth-login">
+    <div class="auth-logo"><div class="auth-logo-dot"></div>AI Detector</div>
+    <h2 class="auth-title">Welcome back</h2>
+    <p class="auth-sub">Sign in to your account</p>
+    <div class="auth-field">
+      <label class="auth-label">Email</label>
+      <input class="auth-input" id="login-email" type="email" placeholder="you@example.com" />
+      <div class="auth-error" id="login-email-err"></div>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Password</label>
+      <div class="auth-pw-wrap">
+        <input class="auth-input" id="login-pw" type="password" placeholder="••••••••" />
+        <button class="auth-pw-toggle" onclick="togglePw('login-pw',this)" tabindex="-1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div class="auth-error" id="login-pw-err"></div>
+    </div>
+    <div class="auth-error auth-error-main" id="login-main-err"></div>
+    <button class="auth-submit" onclick="doLogin()">Sign in</button>
+    <p class="auth-switch">Don't have an account? <a onclick="showAuth('signup')">Sign up</a></p>
+    <button class="auth-back" onclick="showAuth(null)">← Back</button>
+  </div>
+  <div class="auth-card" id="auth-signup" style="display:none;">
+    <div class="auth-logo"><div class="auth-logo-dot"></div>AI Detector</div>
+    <h2 class="auth-title">Create account</h2>
+    <p class="auth-sub">Join to start detecting AI-generated essays</p>
+    <div class="auth-row">
+      <div class="auth-field">
+        <label class="auth-label">First name</label>
+        <input class="auth-input" id="su-first" type="text" placeholder="Lindsey" />
+        <div class="auth-error" id="su-first-err"></div>
+      </div>
+      <div class="auth-field">
+        <label class="auth-label">Last name</label>
+        <input class="auth-input" id="su-last" type="text" placeholder="McGovern" />
+        <div class="auth-error" id="su-last-err"></div>
+      </div>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Email</label>
+      <input class="auth-input" id="su-email" type="email" placeholder="you@example.com" />
+      <div class="auth-error" id="su-email-err"></div>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Role</label>
+      <select class="auth-input auth-select" id="su-role">
+        <option value="student">Student</option>
+        <option value="educator">Educator</option>
+        <option value="researcher">Researcher</option>
+      </select>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Password</label>
+      <div class="auth-pw-wrap">
+        <input class="auth-input" id="su-pw" type="password" placeholder="Min. 8 characters" oninput="updateStrength(this.value)" />
+        <button class="auth-pw-toggle" onclick="togglePw('su-pw',this)" tabindex="-1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div class="pw-strength"><div class="pw-strength-fill" id="pw-fill"></div></div>
+      <div class="pw-strength-label" id="pw-label"></div>
+      <div class="auth-error" id="su-pw-err"></div>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Confirm password</label>
+      <div class="auth-pw-wrap">
+        <input class="auth-input" id="su-pw2" type="password" placeholder="••••••••" />
+        <button class="auth-pw-toggle" onclick="togglePw('su-pw2',this)" tabindex="-1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div class="auth-error" id="su-pw2-err"></div>
+    </div>
+    <div class="auth-error auth-error-main" id="su-main-err"></div>
+    <button class="auth-submit" onclick="doSignup()">Create account</button>
+    <p class="auth-switch">Already have an account? <a onclick="showAuth('login')">Sign in</a></p>
+    <button class="auth-back" onclick="showAuth(null)">← Back</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="nav-item active" id="nav-home" onclick="showPage('home')">
+      <div class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      Home
+    </div>
+    <div class="nav-item" id="nav-editor" onclick="showPage('editor')">
+      <div class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+      Scan Essay
+    </div>
+    <div class="nav-item" id="nav-history" onclick="showPage('history')">
+      <div class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      History
+    </div>
+    <div class="nav-item" id="nav-profile" onclick="showPage('profile')">
+      <div class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+      Profile
+    </div>
+    <div class="nav-spacer"></div>
+    <div class="nav-item" id="nav-settings" onclick="showPage('settings')">
+      <div class="nav-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+      Settings
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main-area">
+    <div class="topbar" style="position:relative;">
+      <div class="user-chip" onclick="toggleDropdown()">
+        <div class="user-av" id="topbar-av">?</div>
+        <span id="topbar-name" style="font-size:0.84rem;font-weight:500;color:var(--text);"></span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="user-dropdown" id="user-dropdown">
+        <div class="ud-header">
+          <div class="ud-name" id="dd-name">—</div>
+          <div class="ud-email" id="dd-email">—</div>
+        </div>
+        <div class="ud-item" onclick="showPage('profile');toggleDropdown()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profile
+        </div>
+        <div class="ud-item" onclick="showPage('settings');toggleDropdown()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </div>
+        <div class="ud-item danger" onclick="doLogout()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign out
+        </div>
+      </div>
+    </div>
+
+    <!-- HOME -->
+    <div class="page active" id="home-page">
+      <div class="home-greeting">Welcome Lindsey!</div>
+      <div class="home-sub">Track your submissions</div>
+      <div class="section-label">Essay 1 : <span>Overview</span></div>
+      <div id="home-cards" class="essay-cards"></div>
+      <div id="home-empty" class="home-empty">No essays scanned yet. <a onclick="showPage('editor')">Scan your first essay →</a></div>
+    </div>
+
+    <!-- EDITOR -->
+    <div class="page" id="editor-page">
+      <div class="editor-wrap">
+        <div class="editor-body">
+          <textarea id="essay-editor" placeholder="Paste or type your essay here…"></textarea>
+        </div>
+        <div class="toolbar">
+          <button class="tb-btn" title="Font">A</button>
+          <button class="tb-btn" id="tb-bold" title="Bold" onclick="this.classList.toggle('active')"><b>B</b></button>
+          <button class="tb-btn" id="tb-italic" title="Italic" onclick="this.classList.toggle('active')"><i>I</i></button>
+          <button class="tb-btn" id="tb-strike" title="Strike" onclick="this.classList.toggle('active')"><s>S</s></button>
+          <div class="tb-size">16 ↕</div>
+          <div class="tb-sep"></div>
+          <button class="tb-btn">☰</button>
+          <button class="tb-btn">≡</button>
+          <button class="tb-btn">▤</button>
+          <div class="tb-sep"></div>
+          <button class="tb-btn" style="font-size:0.7rem;font-weight:700;">H₁</button>
+          <button class="tb-btn" style="font-size:0.7rem;font-weight:700;">H₂</button>
+          <button class="tb-btn" style="font-size:0.7rem;font-weight:700;">H₃</button>
+          <span class="wc" id="wc">0 words</span>
+          <div class="tb-right">
+            <button class="attach-btn" title="Attach">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <button class="sample-pill" onclick="loadSample('ai')">AI sample</button>
+            <button class="sample-pill" onclick="loadSample('human')">Human sample</button>
+            <button class="scan-btn" id="scan-btn" onclick="doScan()">Scan</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results panel -->
+      <div class="results-sidebar">
+        <div class="result-tabs">
+          <button class="result-tab active" id="tab-result" onclick="switchTab('result')">Result</button>
+          <button class="result-tab" id="tab-feedback" onclick="switchTab('feedback')">Feedback</button>
+        </div>
+
+        <div id="result-content" style="display:flex;flex-direction:column;gap:10px;">
+          <div class="await-card" id="await-card">Paste your essay and click <strong>Scan</strong> to analyze it for AI-generated content.</div>
+          <div class="ai-result-card" id="ai-card">
+            <div class="arc-title">AI Generated</div>
+            <div class="arc-body">This essay has been marked as AI-Generated.</div>
+          </div>
+          <div class="human-result-card" id="human-card">
+            <div class="arc-title">Human Written</div>
+            <div class="arc-body">This essay appears to be written by a human.</div>
+          </div>
+          <div class="conf-card" id="conf-card">
+            <div class="conf-label-sm">AI Probability</div>
+            <div class="conf-track"><div class="conf-fill" id="conf-fill"></div></div>
+            <div class="conf-big" id="conf-big">—</div>
+          </div>
+        </div>
+
+        <div id="feedback-content" class="feedback-area">
+          <p class="fb-label">Was this result correct? Your feedback helps improve the model.</p>
+          <div class="fb-btns">
+            <button class="fb-btn" id="fb-yes" onclick="giveFeedback('correct')">✓ Correct</button>
+            <button class="fb-btn" id="fb-no" onclick="giveFeedback('incorrect')">✗ Incorrect</button>
+          </div>
+          <p id="fb-thanks" style="display:none;font-size:0.82rem;color:var(--green);font-weight:500;">Thanks for your feedback!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="history-page">
+      <div class="page-title">Scan History</div>
+      <div class="page-sub">All your previous submissions</div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="profile-page">
+      <div class="profile-header">
+        <div class="profile-av">L</div>
+        <div>
+          <div class="profile-name">Lindsey McGovern</div>
+          <div class="profile-role">Student · Honors Thesis</div>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val" id="st-total">0</div><div class="stat-lbl">Total Scans</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-ai">0</div><div class="stat-lbl">AI Detected</div></div>
+        <div class="stat-box"><div class="stat-val" id="st-human">0</div><div class="stat-lbl">Human</div></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="page" id="settings-page">
+      <div class="page-title">Settings</div>
+      <div class="page-sub">Configure your AI Detector</div>
+      <div class="settings-card">
+        <div class="settings-field-label">Backend API URL</div>
+        <input class="settings-input" id="api-input" type="text" value="http://localhost:5000/predict" />
+        <p class="settings-hint">Point this to your running Flask backend (app.py). Default is localhost.</p>
+        <button class="settings-save" onclick="saveApi()">Save</button>
+        <span id="save-ok" style="display:none;margin-left:10px;font-size:0.8rem;color:var(--green);">Saved!</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Config — change this to your Render URL after deploying ──
+const BASE_URL = 'http://localhost:5001';
+
+const AI_SAMPLE = `In recent years, technology has had a profound impact on various aspects of society, including education. The integration of technology in classrooms has transformed the way students learn and teachers instruct. From interactive digital tools to online learning platforms, technology has opened up new avenues for personalized and engaging education. Furthermore, technology has made education more accessible to a wider audience, breaking down geographical barriers and providing opportunities for lifelong learning.`;
+const HUMAN_SAMPLE = `I used to think summer was just about sleeping in and hanging out, but last year my mom signed me up for this community garden project and I honestly hated the idea at first. Like, who wants to spend their break pulling weeds? But the first day we went, there was this old guy named Mr. Patterson who had been tending the same plot for eleven years. He showed me how to tell when tomatoes are actually ripe versus just red, and I didn't expect to care but I ended up going back three times a week.`;
+
+let currentUser  = null;
+let scanHistory  = [];
+
+// ── API helper ────────────────────────────────────────────────
+function getToken() { return localStorage.getItem('ai_token'); }
+function setToken(t) { localStorage.setItem('ai_token', t); }
+function clearToken() { localStorage.removeItem('ai_token'); }
+
+async function api(path, options = {}) {
+  const token = getToken();
+  const res = await fetch(BASE_URL + path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// ── Auth overlay ──────────────────────────────────────────────
+function showAuth(mode) {
+  const overlay = document.getElementById('auth-overlay');
+  if (!mode) { overlay.classList.remove('visible'); return; }
+  overlay.classList.add('visible');
+  document.getElementById('auth-login').style.display  = mode === 'login'  ? 'block' : 'none';
+  document.getElementById('auth-signup').style.display = mode === 'signup' ? 'block' : 'none';
+  clearAuthErrors();
+}
+
+function clearAuthErrors() {
+  document.querySelectorAll('.auth-error').forEach(el => el.textContent = '');
+  document.querySelectorAll('.auth-input').forEach(el => el.classList.remove('error'));
+}
+
+function fieldErr(id, msg) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = msg;
+  const field = el && el.closest('.auth-field');
+  if (field) { const inp = field.querySelector('.auth-input'); if (inp) inp.classList.add('error'); }
+}
+
+async function doLogin() {
+  clearAuthErrors();
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pw    = document.getElementById('login-pw').value;
+  let ok = true;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldErr('login-email-err', 'Enter a valid email'); ok = false; }
+  if (!pw) { fieldErr('login-pw-err', 'Enter your password'); ok = false; }
+  if (!ok) return;
+
+  const btn = document.querySelector('#auth-login .auth-submit');
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+
+  try {
+    const data = await api('/login', { method: 'POST', body: JSON.stringify({ email, password: pw }) });
+    setToken(data.token);
+    currentUser = data.user;
+    await loadScans();
+    enterApp();
+  } catch (e) {
+    document.getElementById('login-main-err').textContent = e.message;
+  } finally {
+    btn.textContent = 'Sign in'; btn.disabled = false;
+  }
+}
+
+async function doSignup() {
+  clearAuthErrors();
+  const first = document.getElementById('su-first').value.trim();
+  const last  = document.getElementById('su-last').value.trim();
+  const email = document.getElementById('su-email').value.trim().toLowerCase();
+  const role  = document.getElementById('su-role').value;
+  const pw    = document.getElementById('su-pw').value;
+  const pw2   = document.getElementById('su-pw2').value;
+  let ok = true;
+
+  if (!first) { fieldErr('su-first-err', 'Required'); ok = false; }
+  if (!last)  { fieldErr('su-last-err',  'Required'); ok = false; }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { fieldErr('su-email-err', 'Enter a valid email'); ok = false; }
+  if (pw.length < 8) { fieldErr('su-pw-err', 'At least 8 characters'); ok = false; }
+  if (pw !== pw2)    { fieldErr('su-pw2-err', 'Passwords do not match'); ok = false; }
+  if (!ok) return;
+
+  const btn = document.querySelector('#auth-signup .auth-submit');
+  btn.textContent = 'Creating account…'; btn.disabled = true;
+
+  try {
+    const data = await api('/signup', { method: 'POST', body: JSON.stringify({ firstName: first, lastName: last, email, password: pw, role }) });
+    setToken(data.token);
+    currentUser = data.user;
+    scanHistory = [];
+    enterApp();
+  } catch (e) {
+    document.getElementById('su-main-err').textContent = e.message;
+  } finally {
+    btn.textContent = 'Create account'; btn.disabled = false;
+  }
+}
+
+async function doLogout() {
+  clearToken();
+  currentUser = null;
+  scanHistory = [];
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('landing').classList.remove('hidden');
+  document.getElementById('user-dropdown').classList.remove('open');
+  document.getElementById('essay-editor').value = '';
+  document.getElementById('wc').textContent = '0 words';
+  document.getElementById('await-card').style.display = 'block';
+  document.getElementById('ai-card').classList.remove('visible');
+  document.getElementById('human-card').classList.remove('visible');
+  document.getElementById('conf-card').classList.remove('visible');
+}
+
+async function loadScans() {
+  try {
+    const data = await api('/scans');
+    scanHistory = data.scans.map((s, i) => ({ ...s, name: 'Essay ' + (data.scans.length - i) }));
+  } catch { scanHistory = []; }
+}
+
+function togglePw(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  const showing = inp.type === 'text';
+  inp.type = showing ? 'password' : 'text';
+  btn.style.color = showing ? '' : 'var(--blue)';
+}
+
+function updateStrength(pw) {
+  const fill = document.getElementById('pw-fill');
+  const label = document.getElementById('pw-label');
+  if (!pw) { fill.style.width = '0%'; label.textContent = ''; return; }
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const levels = [
+    { w: '25%', color: '#f0436a', text: 'Weak' },
+    { w: '50%', color: '#f5a623', text: 'Fair' },
+    { w: '75%', color: '#3b6ef5', text: 'Good' },
+    { w: '100%', color: '#2ec26a', text: 'Strong' },
+  ];
+  const lvl = levels[score - 1] || levels[0];
+  fill.style.width = lvl.w; fill.style.background = lvl.color;
+  label.textContent = lvl.text; label.style.color = lvl.color;
+}
+
+// ── App entry ─────────────────────────────────────────────────
+function enterApp() {
+  showAuth(null);
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  const initials = (currentUser.firstName[0] + currentUser.lastName[0]).toUpperCase();
+  document.getElementById('topbar-av').textContent   = initials;
+  document.getElementById('topbar-name').textContent = currentUser.firstName;
+  document.getElementById('dd-name').textContent     = currentUser.firstName + ' ' + currentUser.lastName;
+  document.getElementById('dd-email').textContent    = currentUser.email;
+  document.querySelector('.profile-av').textContent  = initials;
+  document.querySelector('.profile-name').textContent = currentUser.firstName + ' ' + currentUser.lastName;
+  document.querySelector('.profile-role').textContent = capitalise(currentUser.role) + ' · AI Detector';
+  document.querySelector('.home-greeting').textContent = 'Welcome ' + currentUser.firstName + '!';
+  showPage('home');
+  renderHome();
+}
+
+function capitalise(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+// ── Dropdown ──────────────────────────────────────────────────
+function toggleDropdown() { document.getElementById('user-dropdown').classList.toggle('open'); }
+document.addEventListener('click', e => {
+  if (!e.target.closest('.user-chip') && !e.target.closest('.user-dropdown'))
+    document.getElementById('user-dropdown').classList.remove('open');
+});
+
+// ── Navigation ────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(name + '-page').classList.add('active');
+  const nav = document.getElementById('nav-' + name);
+  if (nav) nav.classList.add('active');
+  if (name === 'history') renderHistory();
+  if (name === 'profile') renderProfile();
+}
+
+// ── Editor ────────────────────────────────────────────────────
+const editor = document.getElementById('essay-editor');
+editor.addEventListener('input', () => {
+  const wc = editor.value.trim() ? editor.value.trim().split(/\s+/).length : 0;
+  document.getElementById('wc').textContent = wc + (wc === 1 ? ' word' : ' words');
+});
+
+function loadSample(type) {
+  editor.value = type === 'ai' ? AI_SAMPLE : HUMAN_SAMPLE;
+  editor.dispatchEvent(new Event('input'));
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-result').classList.toggle('active', tab === 'result');
+  document.getElementById('tab-feedback').classList.toggle('active', tab === 'feedback');
+  document.getElementById('result-content').style.display = tab === 'result' ? 'flex' : 'none';
+  document.getElementById('feedback-content').classList.toggle('visible', tab === 'feedback');
+}
+
+// ── Scan ──────────────────────────────────────────────────────
+async function doScan() {
+  const text = editor.value.trim();
+  if (text.length < 50) { alert('Please enter at least 50 characters.'); return; }
+
+  const btn = document.getElementById('scan-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Scanning…';
+
+  document.getElementById('await-card').style.display = 'block';
+  document.getElementById('ai-card').classList.remove('visible');
+  document.getElementById('human-card').classList.remove('visible');
+  document.getElementById('conf-card').classList.remove('visible');
+
+  try {
+    const data = await api('/predict', { method: 'POST', body: JSON.stringify({ text }) });
+    const isAI = data.label === 1;
+    const pct  = Math.round(data.ai_probability * 100);
+
+    document.getElementById('await-card').style.display = 'none';
+    if (isAI) document.getElementById('ai-card').classList.add('visible');
+    else      document.getElementById('human-card').classList.add('visible');
+
+    document.getElementById('conf-card').classList.add('visible');
+    document.getElementById('conf-big').textContent = pct + '% AI probability';
+    const fill = document.getElementById('conf-fill');
+    fill.className = 'conf-fill' + (isAI ? '' : ' human');
+    setTimeout(() => { fill.style.width = pct + '%'; }, 60);
+
+    // Reload history from server so it's always in sync
+    await loadScans();
+    renderHome();
+
+  } catch (e) {
+    document.getElementById('await-card').style.display = 'none';
+    alert('Scan failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Scan';
+    document.getElementById('fb-thanks').style.display = 'none';
+    document.getElementById('fb-yes').className = 'fb-btn';
+    document.getElementById('fb-no').className  = 'fb-btn';
+  }
+}
+
+function giveFeedback(type) {
+  document.getElementById('fb-yes').className = 'fb-btn' + (type === 'correct'   ? ' correct'   : '');
+  document.getElementById('fb-no').className  = 'fb-btn' + (type === 'incorrect' ? ' incorrect' : '');
+  document.getElementById('fb-thanks').style.display = 'block';
+}
+
+// ── Render helpers ────────────────────────────────────────────
+function renderHome() {
+  const cards = document.getElementById('home-cards');
+  const empty = document.getElementById('home-empty');
+  if (scanHistory.length === 0) { cards.style.display = 'none'; empty.style.display = 'block'; return; }
+  cards.style.display = 'flex'; empty.style.display = 'none';
+  cards.innerHTML = scanHistory.slice(0, 4).map(item => {
+    const isAI  = item.label === 1;
+    const color = isAI ? 'var(--red-card)' : 'var(--green)';
+    const icon  = isAI
+      ? `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#f0436a" stroke-width="2.8" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
+      : `<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2ec26a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    return `<div class="essay-card"><div class="essay-card-inner">
+      <div class="ec-title">${item.name}<span class="ec-icon">📄</span></div>
+      <div class="result-circle ${isAI ? 'ai' : ''}" style="border-color:${color}"><div class="rc-inner">${icon}</div></div>
+      <div style="font-size:0.76rem;color:var(--text-muted);text-align:center;width:100%;">${item.verdict} · ${item.pct}%</div>
+    </div></div>`;
+  }).join('');
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (scanHistory.length === 0) {
+    list.innerHTML = `<p style="color:var(--text-muted);font-size:0.86rem;">No scans yet. Go to <span style="color:var(--blue);cursor:pointer;" onclick="showPage('editor')">Scan Essay</span> to get started.</p>`;
+    return;
+  }
+  list.innerHTML = scanHistory.map(item => `
+    <div class="history-item" onclick="showPage('editor')">
+      <div class="h-dot ${item.label === 1 ? 'ai' : 'human'}"></div>
+      <div class="h-info"><div class="h-name">${item.name}</div><div class="h-date">${item.date} · "${item.preview}"</div></div>
+      <div class="h-badge ${item.label === 1 ? 'ai' : 'human'}">${item.verdict}</div>
+    </div>`).join('');
+}
+
+function renderProfile() {
+  document.getElementById('st-total').textContent = scanHistory.length;
+  document.getElementById('st-ai').textContent    = scanHistory.filter(x => x.label === 1).length;
+  document.getElementById('st-human').textContent = scanHistory.filter(x => x.label === 0).length;
+}
+
+function saveApi() {
+  const ok = document.getElementById('save-ok');
+  ok.style.display = 'inline';
+  setTimeout(() => { ok.style.display = 'none'; }, 2000);
+}
+
+// ── Auto-login from saved JWT ─────────────────────────────────
+(async function init() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    const data = await api('/me');
+    currentUser = data.user;
+    await loadScans();
+    enterApp();
+  } catch {
+    clearToken(); // token expired or invalid
+  }
+})();
+</script>
+</body>
+</html>
