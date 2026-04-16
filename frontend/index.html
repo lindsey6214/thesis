@@ -974,6 +974,8 @@ async function doLogin() {
     const data = await api('/login', { method: 'POST', body: JSON.stringify({ email, password: pw }) });
     setToken(data.token);
     currentUser = data.user;
+    // small pause to ensure token is written to localStorage before next request
+    await new Promise(r => setTimeout(r, 100));
     await loadScans();
     enterApp();
   } catch (e) {
@@ -1007,6 +1009,7 @@ async function doSignup() {
     const data = await api('/signup', { method: 'POST', body: JSON.stringify({ firstName: first, lastName: last, email, password: pw, role }) });
     setToken(data.token);
     currentUser = data.user;
+    await new Promise(r => setTimeout(r, 100));
     scanHistory = [];
     enterApp();
   } catch (e) {
