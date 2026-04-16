@@ -908,8 +908,7 @@
 </div>
 
 <script>
-// ── Config — change this to your Render URL after deploying ──
-const BASE_URL = 'http://localhost:5001';
+const BASE_URL = 'https://thesis-v0rr.onrender.com';
 
 const AI_SAMPLE = `In recent years, technology has had a profound impact on various aspects of society, including education. The integration of technology in classrooms has transformed the way students learn and teachers instruct. From interactive digital tools to online learning platforms, technology has opened up new avenues for personalized and engaging education. Furthermore, technology has made education more accessible to a wider audience, breaking down geographical barriers and providing opportunities for lifelong learning.`;
 const HUMAN_SAMPLE = `I used to think summer was just about sleeping in and hanging out, but last year my mom signed me up for this community garden project and I honestly hated the idea at first. Like, who wants to spend their break pulling weeds? But the first day we went, there was this old guy named Mr. Patterson who had been tending the same plot for eleven years. He showed me how to tell when tomatoes are actually ripe versus just red, and I didn't expect to care but I ended up going back three times a week.`;
@@ -917,7 +916,7 @@ const HUMAN_SAMPLE = `I used to think summer was just about sleeping in and hang
 let currentUser  = null;
 let scanHistory  = [];
 
-// ── API helper ────────────────────────────────────────────────
+// API helper
 function getToken() { return localStorage.getItem('ai_token'); }
 function setToken(t) { localStorage.setItem('ai_token', t); }
 function clearToken() { localStorage.removeItem('ai_token'); }
@@ -937,7 +936,7 @@ async function api(path, options = {}) {
   return data;
 }
 
-// ── Auth overlay ──────────────────────────────────────────────
+// Auth overlay
 function showAuth(mode) {
   const overlay = document.getElementById('auth-overlay');
   if (!mode) { overlay.classList.remove('visible'); return; }
@@ -1066,7 +1065,7 @@ function updateStrength(pw) {
   label.textContent = lvl.text; label.style.color = lvl.color;
 }
 
-// ── App entry ─────────────────────────────────────────────────
+// App entry
 function enterApp() {
   showAuth(null);
   document.getElementById('landing').classList.add('hidden');
@@ -1086,14 +1085,14 @@ function enterApp() {
 
 function capitalise(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
 
-// ── Dropdown ──────────────────────────────────────────────────
+// Dropdown
 function toggleDropdown() { document.getElementById('user-dropdown').classList.toggle('open'); }
 document.addEventListener('click', e => {
   if (!e.target.closest('.user-chip') && !e.target.closest('.user-dropdown'))
     document.getElementById('user-dropdown').classList.remove('open');
 });
 
-// ── Navigation ────────────────────────────────────────────────
+// Navigation
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1104,7 +1103,7 @@ function showPage(name) {
   if (name === 'profile') renderProfile();
 }
 
-// ── Editor ────────────────────────────────────────────────────
+// Editor
 const editor = document.getElementById('essay-editor');
 editor.addEventListener('input', () => {
   const wc = editor.value.trim() ? editor.value.trim().split(/\s+/).length : 0;
@@ -1123,7 +1122,7 @@ function switchTab(tab) {
   document.getElementById('feedback-content').classList.toggle('visible', tab === 'feedback');
 }
 
-// ── Scan ──────────────────────────────────────────────────────
+// Scan
 async function doScan() {
   const text = editor.value.trim();
   if (text.length < 50) { alert('Please enter at least 50 characters.'); return; }
@@ -1174,7 +1173,7 @@ function giveFeedback(type) {
   document.getElementById('fb-thanks').style.display = 'block';
 }
 
-// ── Render helpers ────────────────────────────────────────────
+// Render helpers
 function renderHome() {
   const cards = document.getElementById('home-cards');
   const empty = document.getElementById('home-empty');
@@ -1220,7 +1219,7 @@ function saveApi() {
   setTimeout(() => { ok.style.display = 'none'; }, 2000);
 }
 
-// ── Auto-login from saved JWT ─────────────────────────────────
+// Auto-login from saved JWT
 (async function init() {
   const token = getToken();
   if (!token) return;
