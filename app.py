@@ -29,7 +29,11 @@ import os
 app = Flask(__name__)
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "*")
-CORS(app, resources={r"/*": {"origins": FRONTEND_URL}}, supports_credentials=True)
+CORS(app,
+     resources={r"/*": {"origins": FRONTEND_URL}},
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "DELETE", "OPTIONS"])
 
 app.config["SQLALCHEMY_DATABASE_URI"]        = os.environ.get("DATABASE_URL", "sqlite:///local_dev.db")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"]      = {"pool_pre_ping": True, "connect_args": {"sslmode": "require"}}
