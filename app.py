@@ -172,7 +172,7 @@ def signup():
     db.session.add(user)
     db.session.commit()
 
-    token = create_access_token(identity=user.id)
+    token = create_access_token(identity=str(user.id))
     return jsonify({"token": token, "user": user.to_dict()}), 201
 
 
@@ -186,14 +186,14 @@ def login():
     if not user or not bcrypt.check_password_hash(user.password_hash, pw):
         return jsonify({"error": "Incorrect email or password."}), 401
 
-    token = create_access_token(identity=user.id)
+    token = create_access_token(identity=str(user.id))
     return jsonify({"token": token, "user": user.to_dict()}), 200
 
 
 @app.route("/me", methods=["GET"])
 @jwt_required()
 def me():
-    user = User.query.get(get_jwt_identity())
+    user = User.query.get(int(get_jwt_identity()))
     if not user:
         return jsonify({"error": "User not found."}), 404
     return jsonify({"user": user.to_dict()})
@@ -221,7 +221,7 @@ def predict():
 
         # Save to database
         scan = Scan(
-            user_id        = get_jwt_identity(),
+            user_id        = int(get_jwt_identity()),
             preview        = preview,
             verdict        = "AI-Generated" if label == 1 else "Human Written",
             label          = label,
@@ -248,7 +248,7 @@ def predict():
 @jwt_required()
 def get_scans():
     scans = (Scan.query
-             .filter_by(user_id=get_jwt_identity())
+             .filter_by(user_id=int(get_jwt_identity()))
              .order_by(Scan.created_at.desc())
              .limit(50)
              .all())
@@ -258,7 +258,7 @@ def get_scans():
 @app.route("/scans/<int:scan_id>", methods=["DELETE"])
 @jwt_required()
 def delete_scan(scan_id):
-    scan = Scan.query.filter_by(id=scan_id, user_id=get_jwt_identity()).first()
+    scan = Scan.query.filter_by(id=scan_id, user_id=int(get_jwt_identity())).first()
     if not scan:
         return jsonify({"error": "Scan not found."}), 404
     db.session.delete(scan)
