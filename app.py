@@ -270,18 +270,17 @@ def health():
         "tokenizer_loaded": tfidf_tokenizer is not None,
     })
 
+with app.app_context():
+    db.create_all()
+    print("[✓] Database tables ready")
+
+try:
+    load_artifacts()
+except FileNotFoundError as e:
+    print(f"\n[!] WARNING: {e}")
+    print("    /predict returns 503 until model files are present.\n")
 
 # Entry point
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-        print("Database tables ready")
-
-    try:
-        load_artifacts()
-    except FileNotFoundError as e:
-        print(f"\n[!] WARNING: {e}")
-        print("    /predict returns 503 until model files are present.\n")
-
     port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port, debug=False)
