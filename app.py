@@ -270,9 +270,14 @@ def health():
         "tokenizer_loaded": tfidf_tokenizer is not None,
     })
 
-with app.app_context():
-    db.create_all()
-    print("[✓] Database tables ready")
+# Startup
+try:
+    with app.app_context():
+        db.create_all()
+        print("[✓] Database tables ready")
+except Exception as e:
+    print(f"[!] Database connection failed: {e}")
+    print("    Auth/scan saving won't work until DATABASE_URL is fixed.\n")
 
 try:
     load_artifacts()
