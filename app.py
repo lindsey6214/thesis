@@ -73,6 +73,7 @@ class Scan(db.Model):
     id             = db.Column(db.Integer, primary_key=True)
     user_id        = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     preview        = db.Column(db.String(300))
+    full_text      = db.Column(db.Text)
     verdict        = db.Column(db.String(20))
     label          = db.Column(db.Integer)
     ai_probability = db.Column(db.Float)
@@ -83,6 +84,7 @@ class Scan(db.Model):
         return {
             "id":           self.id,
             "preview":      self.preview,
+            "full_text":    self.full_text,
             "verdict":      self.verdict,
             "label":        self.label,
             "pct":          round(self.ai_probability * 100),
@@ -91,9 +93,10 @@ class Scan(db.Model):
         }
 
 
-# ML artifacts
-TOKENIZER_PATH = os.environ.get("TOKENIZER_PATH", "tfidf_tokenizer.pkl")
-WEIGHTS_PATH   = os.environ.get("WEIGHTS_PATH",   "model_weights.pkl")
+# ML artifacts — absolute paths so gunicorn finds them regardless of working directory
+BASE_DIR       = os.path.dirname(os.path.abspath(__file__))
+TOKENIZER_PATH = os.environ.get("TOKENIZER_PATH", os.path.join(BASE_DIR, "tfidf_tokenizer.pkl"))
+WEIGHTS_PATH   = os.environ.get("WEIGHTS_PATH",   os.path.join(BASE_DIR, "model_weights.pkl"))
 
 tfidf_tokenizer = None
 layer_params    = None
@@ -219,10 +222,10 @@ def predict():
         words    = text.split()
         preview  = " ".join(words[:8]) + ("…" if len(words) > 8 else "")
 
-        # Save to database
         scan = Scan(
             user_id        = int(get_jwt_identity()),
             preview        = preview,
+            full_text      = text,
             verdict        = "AI-Generated" if label == 1 else "Human Written",
             label          = label,
             ai_probability = round(ai_prob, 4),
@@ -275,10 +278,17 @@ def health():
         "tokenizer_loaded": tfidf_tokenizer is not None,
     })
 
+
 # Startup
 try:
     with app.app_context():
         db.create_all()
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(db.text("ALTER TABLE scans ADD COLUMN IF NOT EXISTS full_text TEXT"))
+                conn.commit()
+        except Exception:
+            pass
         print("[✓] Database tables ready")
 except Exception as e:
     print(f"[!] Database connection failed: {e}")
@@ -289,6 +299,7 @@ try:
 except FileNotFoundError as e:
     print(f"\n[!] WARNING: {e}")
     print("    /predict returns 503 until model files are present.\n")
+
 
 # Entry point
 if __name__ == "__main__":
