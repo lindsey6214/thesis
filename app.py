@@ -36,7 +36,6 @@ CORS(app,
      methods=["GET", "POST", "DELETE", "OPTIONS"])
 
 app.config["SQLALCHEMY_DATABASE_URI"]        = os.environ.get("DATABASE_URL", "sqlite:///local_dev.db")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"]      = {"pool_pre_ping": True, "connect_args": {"sslmode": "require"}}
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["JWT_SECRET_KEY"]                 = os.environ.get("JWT_SECRET_KEY", "dev-secret-change-in-production")
 app.config["JWT_ACCESS_TOKEN_EXPIRES"]       = timedelta(days=7)
@@ -73,6 +72,7 @@ class Scan(db.Model):
     id             = db.Column(db.Integer, primary_key=True)
     user_id        = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     preview        = db.Column(db.String(300))
+    full_text      = db.Column(db.Text)
     verdict        = db.Column(db.String(20))
     label          = db.Column(db.Integer)
     ai_probability = db.Column(db.Float)
@@ -83,6 +83,7 @@ class Scan(db.Model):
         return {
             "id":           self.id,
             "preview":      self.preview,
+            "full_text":    self.full_text,
             "verdict":      self.verdict,
             "label":        self.label,
             "pct":          round(self.ai_probability * 100),
@@ -110,7 +111,7 @@ def load_artifacts():
     global tfidf_tokenizer, layer_params
     with open(TOKENIZER_PATH, "rb") as f:
         tfidf_tokenizer = pickle.load(f)
-    print(f"Loaded tokenizer  → {TOKENIZER_PATH}")
+    print(f"[✓] Loaded tokenizer  → {TOKENIZER_PATH}")
 
     with open(WEIGHTS_PATH, "rb") as f:
         data = pickle.load(f)
@@ -124,7 +125,7 @@ def load_artifacts():
         if isinstance(act, dict):
             act = act.get("class_name", "linear")
         layer_params.append((W, b, ACTIVATIONS.get(act, ACTIVATIONS["linear"])))
-    print(f"Loaded model      → {WEIGHTS_PATH}  ({len(layer_params)} dense layers)")
+    print(f"[✓] Loaded model      → {WEIGHTS_PATH}  ({len(layer_params)} dense layers)")
 
 def numpy_predict(sparse_features):
     x = sparse_features.toarray().astype(np.float32)
@@ -172,7 +173,7 @@ def signup():
     db.session.add(user)
     db.session.commit()
 
-    token = create_access_token(identity=str(user.id))
+    token = create_access_token(identity=user.id)
     return jsonify({"token": token, "user": user.to_dict()}), 201
 
 
@@ -186,7 +187,7 @@ def login():
     if not user or not bcrypt.check_password_hash(user.password_hash, pw):
         return jsonify({"error": "Incorrect email or password."}), 401
 
-    token = create_access_token(identity=str(user.id))
+    token = create_access_token(identity=user.id)
     return jsonify({"token": token, "user": user.to_dict()}), 200
 
 
@@ -223,6 +224,7 @@ def predict():
         scan = Scan(
             user_id        = int(get_jwt_identity()),
             preview        = preview,
+            full_text      = text,
             verdict        = "AI-Generated" if label == 1 else "Human Written",
             label          = label,
             ai_probability = round(ai_prob, 4),
@@ -275,22 +277,25 @@ def health():
         "tokenizer_loaded": tfidf_tokenizer is not None,
     })
 
-# Startup
-try:
-    with app.app_context():
-        db.create_all()
-        print("[✓] Database tables ready")
-except Exception as e:
-    print(f"[!] Database connection failed: {e}")
-    print("    Auth/scan saving won't work until DATABASE_URL is fixed.\n")
-
-try:
-    load_artifacts()
-except FileNotFoundError as e:
-    print(f"\n[!] WARNING: {e}")
-    print("    /predict returns 503 until model files are present.\n")
 
 # Entry point
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+        # Migrate: add full_text column if it doesn't exist yet
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(db.text("ALTER TABLE scans ADD COLUMN IF NOT EXISTS full_text TEXT"))
+                conn.commit()
+        except Exception:
+            pass
+        print("[✓] Database tables ready")
+
+    try:
+        load_artifacts()
+    except FileNotFoundError as e:
+        print(f"\n[!] WARNING: {e}")
+        print("    /predict returns 503 until model files are present.\n")
+
     port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port, debug=False)
