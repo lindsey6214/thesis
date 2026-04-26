@@ -992,8 +992,8 @@
 </div>
 
 <script>
-// ── Config — change this to your Render URL after deploying ──
-const BASE_URL = 'http://localhost:5001';
+
+const BASE_URL = 'https://thesis-v0rr.onrender.com';
 
 const AI_SAMPLE = `In recent years, technology has had a profound impact on various aspects of society, including education. The integration of technology in classrooms has transformed the way students learn and teachers instruct. From interactive digital tools to online learning platforms, technology has opened up new avenues for personalized and engaging education. Furthermore, technology has made education more accessible to a wider audience, breaking down geographical barriers and providing opportunities for lifelong learning.`;
 const HUMAN_SAMPLE = `I used to think summer was just about sleeping in and hanging out, but last year my mom signed me up for this community garden project and I honestly hated the idea at first. Like, who wants to spend their break pulling weeds? But the first day we went, there was this old guy named Mr. Patterson who had been tending the same plot for eleven years. He showed me how to tell when tomatoes are actually ripe versus just red, and I didn't expect to care but I ended up going back three times a week.`;
@@ -1001,7 +1001,7 @@ const HUMAN_SAMPLE = `I used to think summer was just about sleeping in and hang
 let currentUser  = null;
 let scanHistory  = [];
 
-// ── API helper ────────────────────────────────────────────────
+// API helper
 function getToken() { return localStorage.getItem('ai_token'); }
 function setToken(t) { localStorage.setItem('ai_token', t); }
 function clearToken() { localStorage.removeItem('ai_token'); }
